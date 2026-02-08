@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 // Schema
 const contactSchema = new mongoose.Schema({
@@ -18,31 +18,25 @@ export async function handleContactForm(req, res) {
     // Save message to MongoDB
     await Contact.create({ name, email, message });
 
-    // Create SMTP Transporter
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.resend.com",
-      port: Number(process.env.SMTP_PORT) || 465,
-      secure: true,  // Port 465 ALWAYS uses secure TLS
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      },
-      debug: true,
-      logger: true
-    });
+    // Initialize Resend with existing API Key (SMTP_PASS)
+    const resend = new Resend(process.env.SMTP_PASS);
 
-    // Send Email
-    await transporter.sendMail({
-      from: `"Portfolio Contact" <onboarding@resend.dev>`,   // FIXED
-      to: process.env.MAIL_TO,                               // Your email
+    // Send Email via HTTP API (No SMTP Timeout)
+    const data = await resend.emails.send({
+      from: "Portfolio Contact <onboarding@resend.dev>",
+      to: process.env.MAIL_TO,
       subject: "New Contact Form Message",
-      text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
       html: `
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Message:</strong> ${message}</p>
       `
     });
+
+    if (data.error) {
+      console.error("Resend API Error:", data.error);
+      throw new Error(data.error.message);
+    }
 
     return res.json({
       success: true,
@@ -53,7 +47,7 @@ export async function handleContactForm(req, res) {
     console.error("❌ Contact Form Error:", error);
     return res.status(500).json({
       success: false,
-      message: "Server error sending email"
+      message: "Server error sending email (Resend API)"
     });
   }
 }

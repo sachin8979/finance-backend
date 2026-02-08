@@ -1,7 +1,7 @@
-import nodemailer from "nodemailer";
 import mongoose from "mongoose";
+import nodemailer from "nodemailer";
 
-// Mongoose schema for storing messages
+// Schema
 const contactSchema = new mongoose.Schema({
   name: String,
   email: String,
@@ -15,33 +15,45 @@ export async function handleContactForm(req, res) {
   try {
     const { name, email, message } = req.body;
 
-    // Save in MongoDB
+    // Save message to MongoDB
     await Contact.create({ name, email, message });
 
-    // Email transporter
+    // Create SMTP Transporter
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: process.env.SMTP_HOST || "smtp.resend.com",
+      port: Number(process.env.SMTP_PORT) || 465,
+      secure: true,  // Port 465 ALWAYS uses secure TLS
       auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS,
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
       },
+      debug: true,
+      logger: true
     });
 
-    // Email content
+    // Send Email
     await transporter.sendMail({
-      from: process.env.MAIL_USER,
-      to: process.env.MAIL_USER,
+      from: `"Portfolio Contact" <onboarding@resend.dev>`,   // FIXED
+      to: process.env.MAIL_TO,                               // Your email
       subject: "New Contact Form Message",
-      text: `
-        Name: ${name}
-        Email: ${email}
-        Message: ${message}
-      `,
+      text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
+      html: `
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Message:</strong> ${message}</p>
+      `
     });
 
-    res.json({ success: true, message: "Message sent successfully!" });
+    return res.json({
+      success: true,
+      message: "Message sent successfully!"
+    });
+
   } catch (error) {
-    console.error("❌ Contact form error:", error.message);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("❌ Contact Form Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error sending email"
+    });
   }
 }

@@ -4,7 +4,14 @@ import cors from "cors";
 import mongoose from "mongoose";
 
 const app = express();
-app.use(cors({ origin: "*" }));
+
+// CORS must allow your Netlify frontend URL
+app.use(cors({
+  origin: "https://sachinfintech.com",
+  methods: ["GET", "POST"],
+  credentials: true
+}));
+
 app.use(express.json());
 app.set("timeout", 0); // disable timeout
 dotenv.config();

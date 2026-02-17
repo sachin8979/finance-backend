@@ -5,22 +5,9 @@ import mongoose from "mongoose";
 
 const app = express();
 
-// CORS Configuration
-const allowedOrigins = [
-  "https://sachinfintech.com",
-  "https://www.sachinfintech.com",
-  "https://sachin-finance-portfolio1.onrender.com",
-  "http://localhost:5173" // For local development
-];
-
+// CORS must allow your Netlify frontend URL
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: "https://sachinfintech.com",
   methods: ["GET", "POST"],
   credentials: true
 }));
